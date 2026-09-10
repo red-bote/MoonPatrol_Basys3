@@ -50,7 +50,6 @@ c5_pin_model_dump.txt
 # `make clean` removes this directory wholesale (this port has no separate
 # extracted archive tree to remove -- the pristine source is this repo's
 # own rtl/, tracked normally).
-/basys3/
 *.jou
 *.log
 *.str
