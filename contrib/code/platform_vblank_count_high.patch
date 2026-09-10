@@ -1,0 +1,19 @@
+diff --git a/rtl/platform.vhd b/rtl/platform.vhd
+--- a/rtl/platform.vhd
++++ b/rtl/platform.vhd
+@@ -386,13 +386,13 @@
+ 			if rst_sys = '1' then
+ 				vblank_int <= '0';
+ 				vblank_r := (others => '0');
+-        count := count'high;
++        count := CLK0_FREQ_MHz * 100;
+ 			elsif rising_edge(clk_sys) then
+         -- rising edge vblank only
+         if vblank_prev = '0' and vblank_um = '1' then
+           count := 0;
+         end if;
+-        if count /= count'high then
++        if count /= CLK0_FREQ_MHz * 100 then
+           vblank_int <= '1';
+           count := count + 1;
+         else

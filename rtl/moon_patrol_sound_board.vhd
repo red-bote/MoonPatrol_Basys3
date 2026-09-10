@@ -363,7 +363,7 @@ port map(
 roms_cs <= '1' when dn_addr(15 downto 12) = "1011" else '0';
 
 -- cpu program rom
-cpu_prog_rom : work.dpram generic map (12,8)
+cpu_prog_rom : entity work.dpram generic map (12,8)
 port map
 (
 	clock_a   => clock_30,
@@ -377,7 +377,7 @@ port map
 );
 
 -- cpu wram 
-cpu_ram : work.dpram generic map (7,8)
+cpu_ram : entity work.dpram generic map (7,8)
 port map
 (
 	clock_a   => clock_div(0),  -- 3p58/2,

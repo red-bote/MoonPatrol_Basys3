@@ -386,13 +386,13 @@ begin
 			if rst_sys = '1' then
 				vblank_int <= '0';
 				vblank_r := (others => '0');
-        count := count'high;
+        count := CLK0_FREQ_MHz * 100;
 			elsif rising_edge(clk_sys) then
         -- rising edge vblank only
         if vblank_prev = '0' and vblank_um = '1' then
           count := 0;
         end if;
-        if count /= count'high then
+        if count /= CLK0_FREQ_MHz * 100 then
           vblank_int <= '1';
           count := count + 1;
         else
@@ -428,7 +428,7 @@ begin
 	romb2_cs <= '1' when dn_addr(15 downto 12) = "1001" else '0';
 	romb3_cs <= '1' when dn_addr(15 downto 12) = "1010" else '0';
 
-	rom_inst : work.dpram generic map (14,8)
+	rom_inst : entity work.dpram generic map (14,8)
 	port map
 	(
 		clock_a   => clk_sys,
@@ -441,7 +441,7 @@ begin
 		q_b       => rom_d_o
 	);
 
-	char1_rom_inst : work.dpram generic map (12,8)
+	char1_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a   => clk_sys,
@@ -454,7 +454,7 @@ begin
 		q_b       => tilemap_o(1).tile_d(15 downto 8)
 	);
 
-	char2_rom_inst : work.dpram generic map (12,8)
+	char2_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a   => clk_sys,
@@ -470,7 +470,7 @@ begin
 	spr_addr <= dn_addr(11 downto 0) when rst_sys = '1' else (sprite_i.a(11 downto 5) & '0' & sprite_i.a(3 downto 0));
 	spr_clk  <= clk_sys when rst_sys = '1' else clk_video;
 
-	sprite1_rom_inst : work.dpram generic map (12,8)
+	sprite1_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a	 => spr_clk,
@@ -486,7 +486,7 @@ begin
 		q_b                     => sprite_o.d(23 downto 16)
 	);
 
-	sprite2_rom_inst : work.dpram generic map (12,8)
+	sprite2_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a	 => spr_clk,
@@ -504,7 +504,7 @@ begin
 
    sprite_o.d(sprite_o.d'left downto 32) <= (others => '0');
 
-	bg1_rom_inst : work.dpram generic map (12,8)
+	bg1_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a   => clk_sys,
@@ -517,7 +517,7 @@ begin
 		q_b       => bitmap_o(1).d(7 downto 0)  
 	);
 
-	bg2_rom_inst : work.dpram generic map (12,8)
+	bg2_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a   => clk_sys,
@@ -530,7 +530,7 @@ begin
 		q_b       => bitmap_o(2).d(7 downto 0)  
 	);
 
-	bg3_rom_inst : work.dpram generic map (12,8)
+	bg3_rom_inst : entity work.dpram generic map (12,8)
 	port map
 	(
 		clock_a   => clk_sys,

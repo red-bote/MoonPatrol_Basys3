@@ -1,0 +1,12 @@
+diff --git a/moonpatrol_basys3.srcs/sources_1/imports/mist/scandoubler.v b/moonpatrol_basys3.srcs/sources_1/imports/mist/scandoubler.v
+--- a/moonpatrol_basys3.srcs/sources_1/imports/mist/scandoubler.v
++++ b/moonpatrol_basys3.srcs/sources_1/imports/mist/scandoubler.v
+@@ -121,7 +121,7 @@
+ // ==================================================================
+ 
+ // 2 lines of 2**HCNT_WIDTH pixels 3*COLOR_DEPTH bit RGB
+-(* ramstyle = "no_rw_check" *) reg [COLOR_DEPTH*3-1:0] sd_buffer[2*2**HCNT_WIDTH];
++(* ramstyle = "no_rw_check" *) reg [COLOR_DEPTH*3-1:0] sd_buffer[0:2*2**HCNT_WIDTH-1];
+ 
+ 
+ // use alternating sd_buffers when storing/reading data   
