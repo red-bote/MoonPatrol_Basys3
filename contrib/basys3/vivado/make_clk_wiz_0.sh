@@ -26,7 +26,7 @@
 
 set -euo pipefail
 
-VIVADO=/tools/Xilinx/Vivado/2020.2/bin/vivado
+VIVADO="${VIVADO:-/tools/Xilinx/Vivado/2020.2/bin/vivado}"
 PART=xc7a35tcpg236-1
 
 # Absolute path to this repo's basys3 port tree.

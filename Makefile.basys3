@@ -4,6 +4,13 @@
 # this port. Usage: make -f Makefile.basys3 <target>. See
 # contrib/basys3/PORTING_SPEC.md §0.
 #
+# Prereqs (see README.md "Prerequisites" / "Quick start"): tested only with
+# Linux + bash + GNU make; requires gcc, unzip, GNU patch and Vivado 2020.2
+# (resolved as $VIVADO, default /tools/Xilinx/Vivado/2020.2/bin/vivado);
+# romset at $ROMZIP (default ~/roms/mpatrol.zip). basys3/ is unversioned --
+# create_prj/clk_wiz/patch regenerate it from contrib/basys3/; make clean
+# removes it together with the staged tools/roms/.
+#
 # Default target: build the whole scripted Basys3 port tree.
 TOOLS        := contrib/tools
 BASYS3_TOOLS := contrib/basys3/tools

@@ -81,7 +81,7 @@ set_property -dict { PACKAGE_PIN H1   IOSTANDARD LVCMOS33   PULLUP true } [get_p
 #set_property -dict { PACKAGE_PIN H2   IOSTANDARD LVCMOS33 } [get_ports {JA[6]}];#Sch name = JA9
 #set_property -dict { PACKAGE_PIN G3   IOSTANDARD LVCMOS33 } [get_ports {JA[7]}];#Sch name = JA10
 
-##Pmod Header JB -- unused: this port has no PS/2 keyboard (no built-in scancode decoder in this core, confirmed with user)
+##Pmod Header JB -- unused: this port uses the USB-HID connector (ps2_clk C17 / ps2_dat B17, above) for keyboard PS/2, not the JB header; JB pins stay unconstained
 #set_property -dict { PACKAGE_PIN A14   IOSTANDARD LVCMOS33   PULLUP true } [get_ports ps2_dat];#Sch name = JB1
 #set_property -dict { PACKAGE_PIN A16   IOSTANDARD LVCMOS33 } [get_ports {JB[1]}];#Sch name = JB2
 #set_property -dict { PACKAGE_PIN B15   IOSTANDARD LVCMOS33   PULLUP true } [get_ports ps2_clk];#Sch name = JB3
@@ -134,9 +134,9 @@ set_property -dict { PACKAGE_PIN R19   IOSTANDARD LVCMOS33 } [get_ports vgaVsync
 #set_property -dict { PACKAGE_PIN A18   IOSTANDARD LVCMOS33 } [get_ports RsTx]
 
 
-##USB HID (PS/2) -- unused: no PS/2 keyboard in this port (see JB note above)
-#set_property -dict { PACKAGE_PIN C17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports ps2_clk]
-#set_property -dict { PACKAGE_PIN B17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports ps2_dat]
+##USB HID (PS/2) -- keyboard decode wired in fabric (io_ps2_keyboard + kbd_joystick)
+set_property -dict { PACKAGE_PIN C17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports ps2_clk]
+set_property -dict { PACKAGE_PIN B17   IOSTANDARD LVCMOS33   PULLUP true } [get_ports ps2_dat]
 
 
 ##Quad SPI Flash

@@ -336,12 +336,15 @@ chip-select existing anywhere in §4's decode table. `ROMZIP` defaults to
   `wram_inst` (the RAM this port serves) is also ordinary CPU work RAM on
   its other port — tying the hiscore port off doesn't disable or corrupt
   anything else.
-- **PS/2 keyboard**: not added. Unlike the Dar-convention cores elsewhere
-  in this repo, this core has no built-in scancode decoder (`JOY`/`JOY2`
-  are raw bit vectors normally driven by DeMiSTify's OSD/HPS layer), and
-  its bit layout differs from Dar's `JoyPCFRLDU` convention, so it would
-  not have been a drop-in reuse of `kbd_joystick.vhd`. JA + dedicated
-  buttons only (§8).
+- **PS/2 keyboard**: unlike the Dar-convention cores
+  elsewhere in this repo, this core has no built-in scancode decoder
+  (`JOY`/`JOY2` are raw bit vectors normally driven by DeMiSTify's
+  OSD/HPS layer), and its bit layout differs from Dar's `JoyPCFRLDU`
+  convention, so it was not a drop-in reuse of `kbd_joystick.vhd`. 
+**Added by means of a small translation layer between
+  `kbd_joystick`'s output and this core's `JOY` layout — not a drop-in, but
+  a one-bit-order remap only; see §9. JA + dedicated buttons continue to
+  work simultaneously (§9).
 - **15 kHz TV passthrough**: no switch-selectable native-rate video mode
   (unlike the Dar-convention cores' `tv15kHz_mode` switch) — this core has
   no equivalent built-in option to key off. VGA-scandoubled output only.
@@ -383,6 +386,40 @@ boundary: bit7=coin, bit6=start, bit5=button2/jump, bit4=button1/fire,
 bit3=up, bit2=down, bit1=left, bit0=right. `JOY2` is tied to the same
 signals as `JOY` in this port (no genuine second control set), matching
 every sibling port's convention.
+
+### Keyboard (USB-HID on Basys3 = PS/2 protocol; added per the user)
+
+The Basys3's onboard USB-HID connector presents PS/2 on `ps2_clk` (C17) /
+`ps2_dat` (B17). This core has no scancode decoder of its own, so the
+repo-standard chain is vendored unmodified into the wrapper:
+
+- `io_ps2_keyboard.vhd` (FPGA64, © P. Wendrich) — bit-bangs the PS/2 stream
+  into `interrupt`+8-bit `scancode`.
+- `kbd_joystick.vhd` (MiST project) — maps scancodes to its own convenience
+  vector `joy_BBBBFRLDU(8 downto 0)`.
+
+Both are byte-copies of the same files already vendored for the DigDug/DKJr
+ports (identical md5), are clocked from `clk12` (12 MHz — comfortably above
+the ≥6 MHz floor the USB-HID keyboard requires), and their only risk is the
+busy-wait PS/2 receiver, which at 12 MHz has ample headroom before the
+bit time enters the ±1/4-bit jitter margin.
+
+`kbd_joystick`'s bit order differs from this core's `JOY`, so instead of a
+drop-in tie the wrapper inserts a remap (`joy_kbd`), then OR-merges it with
+the JA/button vector — keyboard and joystick work simultaneously:
+
+| `kbd_joy` | remap | `JOY` bit | key |
+|---|---|---|---|
+| bit0 (up) | `joy_kbd(3)` | bit3 up, **bit5 jump** | ↑ |
+| bit1 (down) | `joy_kbd(2)` | bit2 down | ↓ |
+| bit2 (left) | `joy_kbd(1)` | bit1 left | ← |
+| bit3 (right) | `joy_kbd(0)` | bit0 right | → |
+| bit4 (fire) | `joy_kbd(4)` | bit4 fire | L-Ctrl |
+| bit5 (1P start) | `joy_kbd(5)` | bit6 start | 1 |
+| bit7 (coin) | `joy_kbd(7)` | bit7 coin | 5 |
+
+Jump follows the same user direction as the JA path: keyboard Up asserts
+both bit3 and bit5 together.
 
 This game has **two action buttons** (fire and jump) — unlike the
 single-fire Dar-convention games. Original plan: give jump a dedicated

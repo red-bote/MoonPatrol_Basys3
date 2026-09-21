@@ -22,7 +22,7 @@ if [ "$MODE" != "synth" ] && [ "$MODE" != "bitstream" ]; then
     exit 2
 fi
 
-VIVADO=/tools/Xilinx/Vivado/2020.2/bin/vivado
+VIVADO="${VIVADO:-/tools/Xilinx/Vivado/2020.2/bin/vivado}"
 
 ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 XPR="$ROOT/basys3/moonpatrol_basys3.xpr"

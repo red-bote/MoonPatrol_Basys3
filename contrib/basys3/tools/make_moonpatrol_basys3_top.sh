@@ -76,15 +76,18 @@ cat > "$TARGET" <<'EOF'
 --    feeding a PWM accumulator, same accumulator shape as every other
 --    Basys3 port in this repo. sw(14)/sw(15) = AMP shutdown/gain, standard
 --    project convention.
---  - Controls: JA (movement + one fire button) OR is not used here -- unlike
---    the Dar-convention cores, this core has no PS/2 keyboard decoder and
---    none is added (confirmed with the user): JA only, plus dedicated
---    buttons for coin/start. This game has two action buttons -- fire and
---    jump -- but per the user's direction, jump is wired from JA's up
---    direction (JA4, the same pin that drives the "up" bit) instead of a
---    dedicated button. btnU = coin, btnL = start; no btnR (freed up --
---    jump no longer needs a dedicated button). JOY2 mirrors JOY (no
---    genuine second control set), matching every sibling port's convention.
+--  - Controls: JA (movement + fire) AND an onboard USB-HID keyboard
+--    (io_ps2_keyboard + kbd_joystick, vendored unmodified from the
+--    DigDug/DKJr family -- this core has no scancode decoder of its own),
+--    OR-merged, plus dedicated buttons for coin/start. Keys: arrows = move,
+--    L-Ctrl = fire, "1" = start, "5" = coin. This game has two action
+--    buttons -- fire and jump -- but per the user's direction, jump is wired
+--    from the up input (JA4 / keyboard Up, the same signal that drives the
+--    "up" bit) instead of a dedicated button. btnU = coin, btnL = start; no
+--    btnR (freed up -- jump no longer needs a dedicated button). JOY2
+--    mirrors JOY (no genuine second control set), matching every sibling
+--    port's convention. Keyboard chain clocked from clk12 (12 MHz, above the
+--    >=6 MHz USB-HID keyboard-clock floor).
 --  - Dip switches (switches_i, 18 bits): tied to the "everything off"
 --    default derived from moonpatrol_mist.sv's exact bit assignments (see
 --    PORTING_SPEC.md §6) -- no physical switch mapping. An earlier version
@@ -123,6 +126,8 @@ port(
  btnL            : in  std_logic;  -- start
 
  JA              : in  std_logic_vector(4 downto 0);  -- joystick (movement + fire); up also drives jump
+ ps2_clk         : in  std_logic;  -- onboard USB HID (PS/2 protocol on C17)
+ ps2_dat         : in  std_logic;  -- onboard USB HID (PS/2 protocol on B17)
 
  O_PMODAMP2_AIN  : out std_logic;
  O_PMODAMP2_GAIN : out std_logic;
@@ -180,7 +185,7 @@ architecture struct of moonpatrol_basys3 is
  -- ROM-playback state machine (see header)
  constant ROM_BYTES : integer := 49152; -- 0xC000, releases/Moon Patrol.mra index-0 stream
  signal rom_state    : integer range 0 to 2 := 0;
- signal rom_cnt      : unsigned(15 downto 0) := (others => '0');
+ signal rom_cnt      : unsigned(15 downto 0);
  signal rom_prom_d   : std_logic_vector(7 downto 0);
  signal loading      : std_logic := '1';
  signal dn_addr_r    : std_logic_vector(15 downto 0) := (others => '0');
@@ -198,6 +203,14 @@ architecture struct of moonpatrol_basys3 is
  signal sd_hs_out, sd_vs_out         : std_logic;
 
  signal JOY  : std_logic_vector(7 downto 0);
+
+ -- USB-HID/PS/2 keyboard decode chain (vendored unmodified; this core has
+ -- no scancode decoder of its own): io_ps2_keyboard + kbd_joystick, clocked
+ -- from clk12 (12 MHz, well above the >=6 MHz USB-HID keyboard-clock floor).
+ signal kbd_intr     : std_logic;
+ signal kbd_scancode : std_logic_vector(7 downto 0);
+ signal kbd_joy      : std_logic_vector(8 downto 0); -- 0=up 1=down 2=left 3=right 4=fire 5=P1start 6=P2start 7=coin
+ signal joy_kbd      : std_logic_vector(7 downto 0);
 
  signal pwm_accumulator : std_logic_vector(13 downto 0);
 
@@ -337,7 +350,44 @@ begin
    hs_write    => '0'
  );
 
- -- JA (active-low, invert to active-high) + dedicated buttons -> JOY(7:0):
+ -- Keyboard (onboard USB HID, PS/2 protocol on ps2_clk/ps2_dat) -> joystick
+ -- chain, vendored unmodified from the DigDug/DKJr family (repo convention;
+ -- this core has no scancode decoder of its own).
+ keyboard : entity work.io_ps2_keyboard
+ port map(
+  clk       => clk12,
+  kbd_clk   => ps2_clk,
+  kbd_dat   => ps2_dat,
+  interrupt => kbd_intr,
+  scancode  => kbd_scancode
+ );
+
+ kbd : entity work.kbd_joystick
+ port map(
+  clk           => clk12,
+  kbdint        => kbd_intr,
+  kbdscancode   => kbd_scancode,
+  joy_BBBBFRLDU => kbd_joy,
+  fn_pulse      => open,
+  fn_toggle     => open
+ );
+
+ -- Map kbd_joystick's output into target_top's JOY(7:0) bit order, OR-merged
+ -- with the JA/button vector (keyboard and joystick active simultaneously).
+ -- kbd_joystick bits: 0=up 1=down 2=left 3=right 4=fire 5=1Pstart 6=2Pstart
+ -- 7=coin. Keys: arrows = move, L-Ctrl = fire, "1" = start, "5" = coin.
+ -- Jump (bit5) is driven from keyboard up like the JA up pin, per the
+ -- user's direction.
+ joy_kbd(0) <= kbd_joy(3);  -- right
+ joy_kbd(1) <= kbd_joy(2);  -- left
+ joy_kbd(2) <= kbd_joy(1);  -- down
+ joy_kbd(3) <= kbd_joy(0);  -- up
+ joy_kbd(4) <= kbd_joy(4);  -- fire (L-Ctrl)
+ joy_kbd(5) <= kbd_joy(0);  -- jump (button 2) -- same key as up
+ joy_kbd(6) <= kbd_joy(5);  -- start ("1")
+ joy_kbd(7) <= kbd_joy(7);  -- coin ("5")
+
+ -- JA (active-low, invert to active-high) + dedicated buttons:
  -- bit7=coin, bit6=start, bit5=jump(button2), bit4=fire(button1),
  -- bit3=up, bit2=down, bit1=left, bit0=right (target_top.vhd's own mapping).
  -- JA physical map: JA1=right, JA2=left, JA3=down, JA4=up, JA7=fire, i.e.
@@ -346,14 +396,14 @@ begin
  -- Per the user's direction, jump (bit5) is driven from JA's up direction
  -- (JA(3)) rather than a dedicated button -- the same physical press now
  -- asserts both "up" (bit3) and "jump" (bit5) simultaneously.
- JOY(0) <= not JA(0);  -- right
- JOY(1) <= not JA(1);  -- left
- JOY(2) <= not JA(2);  -- down
- JOY(3) <= not JA(3);  -- up
- JOY(4) <= not JA(4);  -- fire (button 1)
- JOY(5) <= not JA(3);  -- jump (button 2) -- same pin as up
- JOY(6) <= btnL;       -- start
- JOY(7) <= btnU;       -- coin
+ JOY(0) <= (not JA(0)) or joy_kbd(0);  -- right
+ JOY(1) <= (not JA(1)) or joy_kbd(1);  -- left
+ JOY(2) <= (not JA(2)) or joy_kbd(2);  -- down
+ JOY(3) <= (not JA(3)) or joy_kbd(3);  -- up
+ JOY(4) <= (not JA(4)) or joy_kbd(4);  -- fire (button 1)
+ JOY(5) <= (not JA(3)) or joy_kbd(5);  -- jump (button 2) -- same pin/key as up
+ JOY(6) <= btnL or joy_kbd(6);         -- start
+ JOY(7) <= btnU or joy_kbd(7);         -- coin
 
  ---------------------------------------------------------------------------
  -- Video: scan-double target_top's native ~16 kHz RGB into 31 kHz VGA.
